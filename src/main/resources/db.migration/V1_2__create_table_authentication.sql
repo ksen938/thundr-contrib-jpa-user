@@ -1,4 +1,4 @@
-create table IF NOT EXISTS glory.authentication (
+create table IF NOT EXISTS app.authentication (
   authentication_id int auto_increment,
   username varchar(100),
   password varchar(100),

@@ -1,3 +1,20 @@
+/*
+ * This file is a component of thundr, a software library from 3wks.
+ * Read more: http://www.3wks.com.au/thundr
+ * Copyright (C) 2013 3wks, <thundr@3wks.com.au>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.threewks.thundr.user.jpa;
 
 import com.atomicleopard.expressive.Cast;
@@ -78,13 +95,15 @@ public class UserRepositoryImpl<U extends User> implements UserRepository<U> {
         jpa.run(Propagation.Required, new Action() {
             @Override
             public void run(EntityManager em) {
-                List<U> users = userRepository.find(User.Fields.Username, user.getUsername(), LIMIT_ONE);
-                if (users.isEmpty()) {
-                    userRepository.create(user);
-                } else {
-                    userRepository.update(users.get(0));
-                }
+                userRepository.update(user);
             }
+        });
+    }
+
+    public U create(final U user) {
+        return jpa.run(em -> {
+            userRepository.create(user);
+            return user;
         });
     }
 
@@ -92,24 +111,49 @@ public class UserRepositoryImpl<U extends User> implements UserRepository<U> {
     @SuppressWarnings("unchecked")
     public U get(Authentication authentication) {
         PasswordAuthentication passwordAuthentication = passwordAuthentication(authentication);
-        return (U) passwordAuthentication.getUser((LongRepository<User>) userRepository);
+        return jpa.run(new ResultAction<U>() {
+            @Override
+            public U run(EntityManager em) {
+                return get(passwordAuthentication.getUsername());
+            }
+        });
     }
 
     public U get(String username) {
-        List<U> users = userRepository.find(User.Fields.Username, username, LIMIT_ONE);
-        return users.size() > 0 ? users.get(0) : null;
+        return jpa.run(new ResultAction<U>() {
+            @Override
+            public U run(EntityManager em) {
+                List<U> users = userRepository.find(User.Fields.Username, username, LIMIT_ONE);
+                return users.size() > 0 ? users.get(0) : null;
+            }
+        });
     }
 
     public void delete(U entity) {
-        userRepository.delete(entity);
+        jpa.run(new Action() {
+            @Override
+            public void run(EntityManager em) {
+                userRepository.delete(entity);
+            }
+        });
     }
 
     public List<U> find(String key, Object value, int limit) {
-        return userRepository.find(key, value, limit);
+        return jpa.run(new ResultAction<List<U>>() {
+            @Override
+            public List<U> run(EntityManager em) {
+                return userRepository.find(key, value, limit);
+            }
+        });
     }
 
     public List<U> find(Map<String, Object> properties, int limit) {
-        return userRepository.find(properties, limit);
+        return jpa.run(new ResultAction<List<U>>() {
+            @Override
+            public List<U> run(EntityManager em) {
+                return userRepository.find(properties, limit);
+            }
+        });
     }
 
     private PasswordAuthentication passwordAuthentication(Authentication authentication) {

@@ -1,4 +1,4 @@
-create table if NOT EXISTS glory.user_token (
+create table if NOT EXISTS app.user_token (
 user_token_id int AUTO_INCREMENT,
   user_id INT,
   token VARCHAR(100),

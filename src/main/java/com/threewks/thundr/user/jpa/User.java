@@ -1,3 +1,20 @@
+/*
+ * This file is a component of thundr, a software library from 3wks.
+ * Read more: http://www.3wks.com.au/thundr
+ * Copyright (C) 2013 3wks, <thundr@3wks.com.au>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.threewks.thundr.user.jpa;
 
 import com.google.common.collect.Maps;
@@ -12,7 +29,9 @@ import javax.persistence.*;
 import java.util.*;
 
 @Entity
-@Table(name="user")
+@Table(name="user",
+        indexes = {@Index(columnList = "username")},
+        uniqueConstraints = @UniqueConstraint(columnNames = "username"))
 public class User implements com.threewks.thundr.user.User {
 
     public static class Fields {
@@ -50,13 +69,13 @@ public class User implements com.threewks.thundr.user.User {
     @Convert(converter = DateConverter.class)
     private DateTime lastLogin;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_properties", joinColumns = @JoinColumn(name="user_id"))
     @MapKeyColumn(name="name")
     @Column(name = "value")
     private Map<String, String> properties = Maps.newHashMap();
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name="user_role", joinColumns = @JoinColumn(name="user_id"))
     @Column(name="role_name")
     private Set<String> roles = Sets.newHashSet();

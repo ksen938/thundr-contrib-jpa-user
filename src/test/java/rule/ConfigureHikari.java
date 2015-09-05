@@ -15,24 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.threewks.thundr.user.jpa.converter;
+package rule;
 
-import org.joda.time.DateTime;
+import com.atomicleopard.thundr.jdbc.HikariModule;
+import com.threewks.thundr.injection.UpdatableInjectionContext;
+import org.junit.rules.ExternalResource;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
-import java.sql.Timestamp;
+/**
+ * Created by kaushiksen on 18/08/2015.
+ */
+public class ConfigureHikari extends ExternalResource {
+    protected UpdatableInjectionContext injectionContext;
+    protected HikariModule hikariModule = new HikariModule();
 
-@Converter
-public class DateConverter implements AttributeConverter<DateTime, Timestamp> {
-
-    @Override
-    public Timestamp convertToDatabaseColumn(DateTime attribute) {
-        return attribute == null ? null : new Timestamp(attribute.getMillis());
+    public ConfigureHikari(UpdatableInjectionContext injectionContext) {
+        this.injectionContext = injectionContext;
     }
 
     @Override
-    public DateTime convertToEntityAttribute(Timestamp dbData) {
-        return dbData == null ? null : new DateTime(dbData.getTime());
+    protected void before() throws Throwable {
+        hikariModule.configure(injectionContext);
+    }
+    
+    @Override
+    protected void after() {
+        hikariModule.stop(injectionContext);
     }
 }

@@ -32,70 +32,75 @@ import java.util.List;
 
 public class UserTokenRepositoryImpl<U extends User> implements UserTokenRepository<U> {
 
-	private static final int LIMIT_ONE = 1;
-	private static final int LIMIT_ONE_THOUSAND = 1000;
-	private static final ETransformer<UserToken, Long> TO_USER_TOKEN_ID = new ETransformer<UserToken, Long>() {
-		@Override
-		public Long from(UserToken token) {
-			return token.getId();
-		}
-	};
+    private static final int LIMIT_ONE = 1;
+    private static final int LIMIT_ONE_THOUSAND = 1000;
+    private static final ETransformer<UserToken, Long> TO_USER_TOKEN_ID = new ETransformer<UserToken, Long>() {
+        @Override
+        public Long from(UserToken token) {
+            return token.getId();
+        }
+    };
 
-	private final Jpa jpa;
-	private final LongRepository<UserToken> userTokenRepository;
+    private final Jpa jpa;
+    private final LongRepository<UserToken> userTokenRepository;
 
-	public UserTokenRepositoryImpl(Jpa jpa) {
-		this.jpa = jpa;
-		userTokenRepository = new LongRepository<>(UserToken.class, jpa);
-	}
+    public UserTokenRepositoryImpl(Jpa jpa) {
+        this.jpa = jpa;
+        userTokenRepository = new LongRepository<>(UserToken.class, jpa);
+    }
 
-	@Override
-	public String createToken(final U user) {
-		final UserToken token = new UserToken(user);
-		return jpa.run(Propagation.Required, new ResultAction<String>() {
-			@Override
-			public String run(EntityManager em) {
-				userTokenRepository.create(token);
-				return token.getToken();
-			}
-		});
-	}
+    @Override
+    public String createToken(final U user) {
+        final UserToken token = new UserToken(user);
+        return jpa.run(Propagation.Required, new ResultAction<String>() {
+            @Override
+            public String run(EntityManager em) {
+                userTokenRepository.create(token);
+                return token.getToken();
+            }
+        });
+    }
 
-	@Override
-	public void expireToken(U user, final String token) {
-		jpa.run(Propagation.Required, new Action() {
-			@Override
-			public void run(EntityManager em) {
-				List<UserToken> tokens = userTokenRepository.find(UserToken.Fields.Token, token, LIMIT_ONE);
-				UserToken userToken = tokens.size() > 0 ? tokens.get(0) : null;
-				if (userToken != null) {
-					userTokenRepository.delete(userToken);
-				}
-			}
-		});
-	}
+    @Override
+    public void expireToken(U user, final String token) {
+        jpa.run(Propagation.Required, new Action() {
+            @Override
+            public void run(EntityManager em) {
+                List<UserToken> tokens = userTokenRepository.find(UserToken.Fields.Token, token, LIMIT_ONE);
+                UserToken userToken = tokens.size() > 0 ? tokens.get(0) : null;
+                if (userToken != null) {
+                    userTokenRepository.delete(userToken);
+                }
+            }
+        });
+    }
 
-	@Override
-	public void expireTokens(final U user) {
-		jpa.run(Propagation.Required, new Action() {
-			@Override
-			public void run(EntityManager em) {
-				List<UserToken> tokens = userTokenRepository.find(UserToken.Fields.User, user.getId(), LIMIT_ONE_THOUSAND);
-				List<Long> tokenIds = Expressive.Transformers.transformAllUsing(TO_USER_TOKEN_ID).from(tokens);
-				userTokenRepository.delete(tokenIds.toArray(new Long[tokenIds.size()]));
-			}
-		});
-	}
+    @Override
+    public void expireTokens(final U user) {
+        jpa.run(Propagation.Required, new Action() {
+            @Override
+            public void run(EntityManager em) {
+                List<UserToken> tokens = userTokenRepository.find(UserToken.Fields.User, user.getId(), LIMIT_ONE_THOUSAND);
+                List<Long> tokenIds = Expressive.Transformers.transformAllUsing(TO_USER_TOKEN_ID).from(tokens);
+                userTokenRepository.delete(tokenIds.toArray(new Long[tokenIds.size()]));
+            }
+        });
+    }
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public U getUserForToken(String token) {
-		List<UserToken> tokens = userTokenRepository.find(UserToken.Fields.Token, token, LIMIT_ONE);
-		UserToken userToken = tokens.size() > 0 ? tokens.get(0) : null;
-		if (userToken == null) {
-			Logger.warn("Recieved invalid user token: %s");
-			return null;
-		}
-		return (U) userToken.getUser();
-	}
+    @SuppressWarnings("unchecked")
+    @Override
+    public U getUserForToken(String token) {
+        List<UserToken> tokens = jpa.run(new ResultAction<List<UserToken>>() {
+            @Override
+            public List<UserToken> run(EntityManager em) {
+                return userTokenRepository.find(UserToken.Fields.Token, token, LIMIT_ONE);
+            }
+        });
+        UserToken userToken = tokens.size() > 0 ? tokens.get(0) : null;
+        if (userToken == null) {
+            Logger.warn("Received invalid user token: %s");
+            return null;
+        }
+        return (U) userToken.getUser();
+    }
 }
