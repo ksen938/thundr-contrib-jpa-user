@@ -276,6 +276,13 @@ public class UserServiceImplIT {
         });
     }
 
+    @Test
+    public void shouldGetUserFromSession() {
+        userService.login(user1Authentication, "password1", sessionStore);
+        User expectedUser = userService.getUser(sessionStore);
+        assertUsersEqual(expectedUser, actualUser1);
+    }
+
     private void assertUsersEqual(User expectedUser, User actualUser)
     {
         assertThat(expectedUser.getId(), is(actualUser.getId()));
